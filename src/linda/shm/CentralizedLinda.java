@@ -44,17 +44,10 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple tryTake(Tuple template) {
-        if (template == null) {
-            return null;
-        }
         lock.lock();
-        Tuple hit = null;
-        for (Tuple tuple : tuples) {
-            if (tuple.matches(template)) {
-                hit = tuple.deepclone();
-                tuples.remove(hit);
-                break;
-            }
+        Tuple hit = tryRead(template);
+        if (hit != null) {
+            tuples.remove(hit);
         }
         lock.unlock();
         return hit;
@@ -80,21 +73,9 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
-        if (template == null) {
-            return new ArrayList<>();
-        }
         lock.lock();
-        List<Tuple> hits = new ArrayList<>();
-        // store all the right tuples
-        for (Tuple tuple : tuples) {
-            if (tuple.matches(template)) {
-                hits.add(tuple);
-            }
-        }
-        // then remove them from the shared memory
-        for (Tuple hit : hits) {
-            tuples.remove(hit);
-        }
+        Collection<Tuple> hits = readAll(template);
+        hits.forEach(tuples::remove);
         lock.unlock();
         return hits;
     }
@@ -105,7 +86,7 @@ public class CentralizedLinda implements Linda {
             return new ArrayList<>();
         }
         lock.lock();
-        List<Tuple> hits = new ArrayList<>();
+        Collection<Tuple> hits = new ArrayList<>();
         for (Tuple tuple : tuples) {
             if (tuple.matches(template)) {
                 hits.add(tuple);
@@ -124,7 +105,4 @@ public class CentralizedLinda implements Linda {
     public void debug(String prefix) {
         tuples.forEach(t -> System.out.println(prefix + t));
     }
-
-    // TO BE COMPLETED
-
 }
