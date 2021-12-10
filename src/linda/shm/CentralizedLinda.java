@@ -200,5 +200,14 @@ public class CentralizedLinda implements Linda {
             }
             return hit;
         }
+
+        @Override
+        public String toString() {
+            return "EventCallback{" +
+                    "mode=" + mode +
+                    ", template=" + template +
+                    ", callback=" + callback +
+                    '}';
+        }
     }
 }
