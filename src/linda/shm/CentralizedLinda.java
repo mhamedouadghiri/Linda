@@ -56,7 +56,7 @@ public class CentralizedLinda implements Linda {
     public Tuple read(Tuple template) {
         lock.lock();
         Tuple hit;
-        if ((hit = tryRead(template)) == null) {
+        while ((hit = tryRead(template)) == null) {
             try {
                 condition.await();
             } catch (InterruptedException e) {
@@ -138,7 +138,7 @@ public class CentralizedLinda implements Linda {
         } else {
             // either the timing is FUTURE, or it is IMMEDIATE but no match was currently found
             // in either case we register the callback for future use
-            eventCallbacks.add(new EventCallback(mode, callback));
+            eventCallbacks.add(new EventCallback(mode, template, callback));
         }
 
         lock.unlock();
@@ -175,14 +175,19 @@ public class CentralizedLinda implements Linda {
 
     private class EventCallback {
         private final eventMode mode;
+        private final Tuple template;
         private final Callback callback;
 
-        public EventCallback(eventMode mode, Callback callback) {
+        public EventCallback(eventMode mode, Tuple template, Callback callback) {
             this.mode = mode;
+            this.template = template;
             this.callback = callback;
         }
 
         public Tuple tryOperation(Tuple template) {
+            if (template != this.template) {
+                return null;
+            }
             Tuple hit = null;
             if (mode == eventMode.READ) {
                 hit = tryRead(template);
