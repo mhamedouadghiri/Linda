@@ -7,6 +7,7 @@ import linda.Tuple;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -17,6 +18,8 @@ public class CentralizedLinda implements Linda {
 
     private final List<Tuple> tuples = new ArrayList<>();
     private final Lock lock = new ReentrantLock();
+    private final Condition condition = lock.newCondition();
+    private final List<EventCallback> eventCallbacks = new ArrayList<>();
 
     public CentralizedLinda() {
     }
@@ -29,17 +32,39 @@ public class CentralizedLinda implements Linda {
         }
         lock.lock();
         tuples.add(t.deepclone());
+        checkCallbacks(t);
+        condition.signalAll();
         lock.unlock();
     }
 
     @Override
     public Tuple take(Tuple template) {
-        return null;
+        lock.lock();
+        Tuple hit;
+        while ((hit = tryTake(template)) == null) {
+            try {
+                condition.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        lock.unlock();
+        return hit;
     }
 
     @Override
     public Tuple read(Tuple template) {
-        return null;
+        lock.lock();
+        Tuple hit;
+        if ((hit = tryRead(template)) == null) {
+            try {
+                condition.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        lock.unlock();
+        return hit;
     }
 
     @Override
@@ -98,11 +123,77 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
+        lock.lock();
+        Tuple hit = null;
+        if (timing == eventTiming.IMMEDIATE) {
+            if (mode == eventMode.READ) {
+                hit = tryRead(template);
+            } else if (mode == eventMode.TAKE) {
+                hit = tryTake(template);
+            }
+        }
 
+        if (hit != null) {
+            callback.call(hit);
+        } else {
+            // either the timing is FUTURE, or it is IMMEDIATE but no match was currently found
+            // in either case we register the callback for future use
+            eventCallbacks.add(new EventCallback(mode, callback));
+        }
+
+        lock.unlock();
     }
 
     @Override
     public void debug(String prefix) {
-        tuples.forEach(t -> System.out.println(prefix + t));
+        debug("TupleSpace", prefix, lock, tuples);
+        debug("Callbacks", prefix, lock, eventCallbacks);
+    }
+
+    private void debug(String identifier, String prefix, Lock lock, Collection<?> collection) {
+        lock.lock();
+        System.out.format("Start %s dump with prefix %s.\n", identifier, prefix);
+        collection.forEach(System.out::println);
+        System.out.format("End %s dump with prefix %s.\n", identifier, prefix);
+        lock.unlock();
+    }
+
+    private void checkCallbacks(Tuple template) {
+//        lock.lock();
+        List<EventCallback> toRemove = new ArrayList<>();
+        for (EventCallback eventCallback : eventCallbacks) {
+            if (eventCallback.tryOperation(template) != null) {
+                toRemove.add(eventCallback);
+                if (eventCallback.mode == eventMode.TAKE) {
+                    break;
+                }
+            }
+        }
+        eventCallbacks.removeAll(toRemove);
+//        lock.unlock();
+    }
+
+    private class EventCallback {
+        private final eventMode mode;
+        private final Callback callback;
+
+        public EventCallback(eventMode mode, Callback callback) {
+            this.mode = mode;
+            this.callback = callback;
+        }
+
+        public Tuple tryOperation(Tuple template) {
+            Tuple hit = null;
+            if (mode == eventMode.READ) {
+                hit = tryRead(template);
+            } else if (mode == eventMode.TAKE) {
+                hit = tryTake(template);
+            }
+
+            if (hit != null) {
+                callback.call(hit);
+            }
+            return hit;
+        }
     }
 }
