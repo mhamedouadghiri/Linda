@@ -158,9 +158,15 @@ public class CentralizedLinda implements Linda {
     }
 
     private void debug(String identifier, String prefix, Collection<?> collection) {
+        lock.lock();
+        if (collection.isEmpty()) {
+            lock.unlock();
+            return;
+        }
         System.out.format("\n *** Start %s dump with prefix %s. *** \n", identifier, prefix);
         collection.forEach(System.out::println);
         System.out.format(" *** End %s dump with prefix %s. *** \n", identifier, prefix);
+        lock.unlock();
     }
 
     private void checkCallbacks(Tuple template) {
