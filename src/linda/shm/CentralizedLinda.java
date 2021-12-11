@@ -39,6 +39,9 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple take(Tuple template) {
+        if (template == null) {
+            return null;
+        }
         lock.lock();
         Tuple hit;
         while ((hit = tryTake(template)) == null) {
@@ -150,6 +153,10 @@ public class CentralizedLinda implements Linda {
     @Override
     public void debug(String prefix) {
         lock.lock();
+        if (tuples.isEmpty() && eventCallbacks.isEmpty()) {
+            lock.unlock();
+            return;
+        }
         System.out.println();
         debug("TupleSpace", prefix, tuples);
         debug("Callbacks", prefix, eventCallbacks);
@@ -163,7 +170,7 @@ public class CentralizedLinda implements Linda {
             lock.unlock();
             return;
         }
-        System.out.format("\n *** Start %s dump with prefix %s. *** \n", identifier, prefix);
+        System.out.format(" *** Start %s dump with prefix %s. *** \n", identifier, prefix);
         collection.forEach(System.out::println);
         System.out.format(" *** End %s dump with prefix %s. *** \n", identifier, prefix);
         lock.unlock();
