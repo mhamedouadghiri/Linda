@@ -2,6 +2,7 @@ package linda.test;
 
 import linda.Linda;
 import linda.Tuple;
+import linda.util.TestUtils;
 
 public class TestRead {
 
@@ -19,11 +20,7 @@ public class TestRead {
 
         // write integer tuple
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(20);
 
             Tuple t1 = new Tuple(4, 5);
             System.out.println("(2) write: " + t1);
@@ -34,11 +31,7 @@ public class TestRead {
 
         // empty template
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(20);
 
             Tuple empty = new Tuple();
             System.out.println("(3) write: " + empty);

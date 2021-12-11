@@ -2,6 +2,7 @@ package linda.test;
 
 import linda.Linda;
 import linda.Tuple;
+import linda.util.TestUtils;
 
 public class TestTryTake {
 
@@ -16,11 +17,7 @@ public class TestTryTake {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(100);
 
             linda.debug("(1.2 before)");
             Tuple template = new Tuple(Integer.class, Integer.class);
@@ -30,11 +27,7 @@ public class TestTryTake {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+//            TestUtils.sleep(20);
 
             Tuple t = new Tuple(4, 5);
             System.out.println("(2) write: " + t);
@@ -42,11 +35,7 @@ public class TestTryTake {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+//            TestUtils.sleep(20);
 
             Tuple t = new Tuple(-8, Integer.class);
             System.out.println("(3) write: " + t);
@@ -54,11 +43,7 @@ public class TestTryTake {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+//            TestUtils.sleep(20);
 
             Tuple t = new Tuple(0, -1);
             System.out.println("(3) write: " + t);

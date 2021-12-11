@@ -2,6 +2,7 @@ package linda.test;
 
 import linda.Linda;
 import linda.Tuple;
+import linda.util.TestUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -21,12 +22,7 @@ public class TestReadAll {
 
         // wait for some tuples to be written
         new Thread(() -> {
-            int millis = 300;
-            try {
-                Thread.sleep(millis);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(300);
 
             Tuple motif = new Tuple(Object.class, String.class);
             Collection<Tuple> res = linda.readAll(motif);
@@ -35,11 +31,7 @@ public class TestReadAll {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(20);
 
             Tuple t = new Tuple(4, "");
             System.out.println("(1) write: " + t);
@@ -47,11 +39,7 @@ public class TestReadAll {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(20);
 
             Tuple t = new Tuple("foo", "bar");
             System.out.println("(2) write: " + t);
@@ -59,11 +47,7 @@ public class TestReadAll {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(20);
 
             Tuple t = new Tuple("foobar", String.class);
             System.out.println("(3) write: " + t);
@@ -71,11 +55,7 @@ public class TestReadAll {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(20);
 
             Tuple t = new Tuple(Foobar.class, String.class);
             System.out.println("(4) write: " + t);
@@ -83,11 +63,7 @@ public class TestReadAll {
         }).start();
 
         new Thread(() -> {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            TestUtils.sleep(20);
 
             Tuple t = new Tuple(new Tuple(Foobar.class, Tuple.class), String.class);
             System.out.println("(5) write: " + t);
@@ -95,11 +71,7 @@ public class TestReadAll {
         }).start();
 
         new Thread(() -> {
-            try {
-                linda.readAll(null);
-            } catch (NullPointerException e) {
-                e.printStackTrace();
-            }
+            linda.readAll(null);
         }).start();
     }
 
