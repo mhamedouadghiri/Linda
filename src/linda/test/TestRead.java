@@ -10,23 +10,44 @@ public class TestRead {
 
         final Linda linda = new linda.shm.CentralizedLinda();
 
-        // read integer tuple... will block until one is written
+        // read tuple... will block until one is written
         new Thread(() -> {
             Tuple template = new Tuple(Integer.class, Integer.class);
             Tuple res = linda.read(template);
-            System.out.println("(1) Result:" + res);
-            linda.debug("(1)");
+            System.out.println("(1.1) Result:" + res);
+            linda.debug("(1.1)");
         }).start();
 
-        // write integer tuple
+        new Thread(() -> {
+            Tuple template = new Tuple(Integer.class, Integer.class);
+            Tuple res = linda.read(template);
+            System.out.println("(1.2) Result:" + res);
+            linda.debug("(1.2)");
+        }).start();
+
+        // write some matching tuples
         new Thread(() -> {
             TestUtils.sleep(20);
 
-            Tuple t1 = new Tuple(4, 5);
-            System.out.println("(2) write: " + t1);
-            linda.write(t1);
+            Tuple t = new Tuple(4, 5);
+            System.out.println("(2) write: " + t);
+            linda.write(t);
+        }).start();
 
-            linda.debug("(2)");
+        new Thread(() -> {
+            TestUtils.sleep(20);
+
+            Tuple t = new Tuple(-4, Integer.class);
+            System.out.println("(3) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            TestUtils.sleep(20);
+
+            Tuple t = new Tuple(Integer.class, -42);
+            System.out.println("(4) write: " + t);
+            linda.write(t);
         }).start();
 
         // empty template
@@ -34,16 +55,13 @@ public class TestRead {
             TestUtils.sleep(20);
 
             Tuple empty = new Tuple();
-            System.out.println("(3) write: " + empty);
+            System.out.println("(5) write: " + empty);
             linda.write(empty);
-
-            linda.debug("(empty)");
         }).start();
 
         // null template
         new Thread(() -> {
             linda.read(null);
-            linda.debug("(null)");
         }).start();
     }
 }
