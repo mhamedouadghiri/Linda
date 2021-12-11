@@ -152,14 +152,14 @@ public class CentralizedLinda implements Linda {
 
     private void debug(String identifier, String prefix, Lock lock, Collection<?> collection) {
         lock.lock();
-        System.out.format("Start %s dump with prefix %s.\n", identifier, prefix);
+        System.out.format("\n *** Start %s dump with prefix %s. *** \n", identifier, prefix);
         collection.forEach(System.out::println);
-        System.out.format("End %s dump with prefix %s.\n", identifier, prefix);
+        System.out.format(" *** End %s dump with prefix %s. *** \n\n", identifier, prefix);
         lock.unlock();
     }
 
     private void checkCallbacks(Tuple template) {
-//        lock.lock();
+        lock.lock();
         List<EventCallback> toRemove = new ArrayList<>();
         for (EventCallback eventCallback : eventCallbacks) {
             if (eventCallback.tryOperation(template) != null) {
@@ -170,7 +170,7 @@ public class CentralizedLinda implements Linda {
             }
         }
         eventCallbacks.removeAll(toRemove);
-//        lock.unlock();
+        lock.unlock();
     }
 
     private class EventCallback {
@@ -184,15 +184,15 @@ public class CentralizedLinda implements Linda {
             this.callback = callback;
         }
 
-        public Tuple tryOperation(Tuple template) {
-            if (template != this.template) {
+        public Tuple tryOperation(Tuple tupleToFind) {
+            if (!tupleToFind.matches(template)) {
                 return null;
             }
             Tuple hit = null;
             if (mode == eventMode.READ) {
-                hit = tryRead(template);
+                hit = tryRead(tupleToFind);
             } else if (mode == eventMode.TAKE) {
-                hit = tryTake(template);
+                hit = tryTake(tupleToFind);
             }
 
             if (hit != null) {
