@@ -14,20 +14,20 @@ public class TestReadAll {
         final Linda linda = new linda.shm.CentralizedLinda();
 
         new Thread(() -> {
-            Tuple motif = new Tuple(Object.class, String.class);
-            Collection<Tuple> res = linda.readAll(motif);
-            System.out.println("(take 1) Result:" + res);
-            linda.debug("(take 1)");
+            Tuple template = new Tuple(Object.class, String.class);
+            Collection<Tuple> res = linda.readAll(template);
+            System.out.println("(read 1) Result:" + res);
+            linda.debug("(read 1)");
         }).start();
 
         // wait for some tuples to be written
         new Thread(() -> {
             TestUtils.sleep(300);
 
-            Tuple motif = new Tuple(Object.class, String.class);
-            Collection<Tuple> res = linda.readAll(motif);
-            System.out.println("(take 2) Result:" + res);
-            linda.debug("(take 2)");
+            Tuple template = new Tuple(Object.class, String.class);
+            Collection<Tuple> res = linda.readAll(template);
+            System.out.println("(read 2) Result:" + res);
+            linda.debug("(read 2)");
         }).start();
 
         new Thread(() -> {
