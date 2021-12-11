@@ -1,0 +1,73 @@
+package linda.test;
+
+import linda.Linda;
+import linda.Tuple;
+
+public class TestTryTake {
+
+    public static void main(String[] a) {
+
+        final Linda linda = new linda.shm.CentralizedLinda();
+
+        new Thread(() -> {
+            Tuple template = new Tuple(Integer.class, Integer.class);
+            Tuple res = linda.tryTake(template);
+            System.out.println("(1.1) Result:" + res);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            linda.debug("(1.2 before)");
+            Tuple template = new Tuple(Integer.class, Integer.class);
+            Tuple res = linda.tryTake(template);
+            System.out.println("(1.2) Result:" + res);
+            linda.debug("(1.2 after)");
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple(4, 5);
+            System.out.println("(2) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple(-8, Integer.class);
+            System.out.println("(3) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple(0, -1);
+            System.out.println("(3) write: " + t);
+            linda.write(t);
+        }).start();
+
+        // null
+        new Thread(() -> {
+            linda.tryTake(null);
+        }).start();
+    }
+}

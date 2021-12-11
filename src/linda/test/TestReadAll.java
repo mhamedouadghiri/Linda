@@ -1,0 +1,108 @@
+package linda.test;
+
+import linda.Linda;
+import linda.Tuple;
+
+import java.io.Serializable;
+import java.util.Collection;
+
+public class TestReadAll {
+
+    public static void main(String[] a) {
+
+        final Linda linda = new linda.shm.CentralizedLinda();
+
+        new Thread(() -> {
+            Tuple motif = new Tuple(Object.class, String.class);
+            Collection<Tuple> res = linda.readAll(motif);
+            System.out.println("(take 1) Result:" + res);
+            linda.debug("(take 1)");
+        }).start();
+
+        // wait for some tuples to be written
+        new Thread(() -> {
+            int millis = 300;
+            try {
+                Thread.sleep(millis);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple motif = new Tuple(Object.class, String.class);
+            Collection<Tuple> res = linda.readAll(motif);
+            System.out.println("(take 2) Result:" + res);
+            linda.debug("(take 2)");
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple(4, "");
+            System.out.println("(1) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple("foo", "bar");
+            System.out.println("(2) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple("foobar", String.class);
+            System.out.println("(3) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple(Foobar.class, String.class);
+            System.out.println("(4) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Tuple t = new Tuple(new Tuple(Foobar.class, Tuple.class), String.class);
+            System.out.println("(5) write: " + t);
+            linda.write(t);
+        }).start();
+
+        new Thread(() -> {
+            try {
+                linda.readAll(null);
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private static class Foobar implements Serializable {
+    }
+}
