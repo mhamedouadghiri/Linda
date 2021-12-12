@@ -1,26 +1,27 @@
-package linda.test;
+package linda.test.full;
 
 import linda.Linda;
 import linda.Tuple;
 import linda.util.TestUtils;
 
-public class TestTake {
+public class TestRead {
 
     public static void main(String[] a) {
 
         final Linda linda = new linda.shm.CentralizedLinda();
 
+        // read tuple... will block until one is written
         new Thread(() -> {
             Tuple template = new Tuple(Integer.class, Integer.class);
-            Tuple result = linda.take(template);
-            System.out.println("(1.1) Result:" + result);
+            Tuple res = linda.read(template);
+            System.out.println("(1.1) Result:" + res);
             linda.debug("(1.1)");
         }).start();
 
         new Thread(() -> {
             Tuple template = new Tuple(Integer.class, Integer.class);
-            Tuple result = linda.take(template);
-            System.out.println("(1.2) Result:" + result);
+            Tuple res = linda.read(template);
+            System.out.println("(1.2) Result:" + res);
             linda.debug("(1.2)");
         }).start();
 
@@ -49,18 +50,18 @@ public class TestTake {
             linda.write(t);
         }).start();
 
-        // empty
+        // empty template
         new Thread(() -> {
             TestUtils.sleep(20);
 
-            Tuple t = new Tuple();
-            System.out.println("(3) write: " + t);
-            linda.write(t);
+            Tuple empty = new Tuple();
+            System.out.println("(5) write: " + empty);
+            linda.write(empty);
         }).start();
 
-        // null
+        // null template
         new Thread(() -> {
-            linda.take(null);
+            linda.read(null);
         }).start();
     }
 }

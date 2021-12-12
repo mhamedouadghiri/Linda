@@ -1,4 +1,4 @@
-package linda.test;
+package linda.test.full;
 
 import linda.Callback;
 import linda.Linda;
@@ -6,7 +6,7 @@ import linda.Linda.eventMode;
 import linda.Linda.eventTiming;
 import linda.Tuple;
 
-/***
+/**
  * Will enter an infinite loop, raise a StackOverflowError exception then crash!
  */
 public class TestCallbackLoop {

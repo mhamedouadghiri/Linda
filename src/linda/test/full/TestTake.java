@@ -1,10 +1,10 @@
-package linda.test;
+package linda.test.full;
 
 import linda.Linda;
 import linda.Tuple;
 import linda.util.TestUtils;
 
-public class TestTryTake {
+public class TestTake {
 
     public static void main(String[] a) {
 
@@ -12,22 +12,21 @@ public class TestTryTake {
 
         new Thread(() -> {
             Tuple template = new Tuple(Integer.class, Integer.class);
-            Tuple res = linda.tryTake(template);
-            System.out.println("(1.1) Result:" + res);
+            Tuple result = linda.take(template);
+            System.out.println("(1.1) Result:" + result);
+            linda.debug("(1.1)");
         }).start();
 
         new Thread(() -> {
-            TestUtils.sleep(100);
-
-            linda.debug("(1.2 before)");
             Tuple template = new Tuple(Integer.class, Integer.class);
-            Tuple res = linda.tryTake(template);
-            System.out.println("(1.2) Result:" + res);
-            linda.debug("(1.2 after)");
+            Tuple result = linda.take(template);
+            System.out.println("(1.2) Result:" + result);
+            linda.debug("(1.2)");
         }).start();
 
+        // write some matching tuples
         new Thread(() -> {
-//            TestUtils.sleep(20);
+            TestUtils.sleep(20);
 
             Tuple t = new Tuple(4, 5);
             System.out.println("(2) write: " + t);
@@ -35,24 +34,33 @@ public class TestTryTake {
         }).start();
 
         new Thread(() -> {
-//            TestUtils.sleep(20);
+            TestUtils.sleep(20);
 
-            Tuple t = new Tuple(-8, Integer.class);
+            Tuple t = new Tuple(-4, Integer.class);
             System.out.println("(3) write: " + t);
             linda.write(t);
         }).start();
 
         new Thread(() -> {
-//            TestUtils.sleep(20);
+            TestUtils.sleep(20);
 
-            Tuple t = new Tuple(0, -1);
+            Tuple t = new Tuple(Integer.class, -42);
+            System.out.println("(4) write: " + t);
+            linda.write(t);
+        }).start();
+
+        // empty
+        new Thread(() -> {
+            TestUtils.sleep(20);
+
+            Tuple t = new Tuple();
             System.out.println("(3) write: " + t);
             linda.write(t);
         }).start();
 
         // null
         new Thread(() -> {
-            linda.tryTake(null);
+            linda.take(null);
         }).start();
     }
 }

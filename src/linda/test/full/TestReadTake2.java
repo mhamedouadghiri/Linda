@@ -1,17 +1,23 @@
-package linda.test;
+package linda.test.full;
 
 import linda.Linda;
 import linda.Tuple;
 import linda.util.TestUtils;
 
-/***
- * As we write 3 tuples in the tupleSpace and there is only 1 take, we are sure that all 3 reads and 1 take will be
- * un-blocked. However, that might happen in any nondeterministic order, thus the 3 reads could potentially yield
- * different values (in case the take happens between one read and another).
+/**
+ * As we write only 1 tuple in the tupleSpace and there are 1 take and 3 reads, there is no guarantee that all 3 reads
+ * yield a result. The later the take is un-blocked, the more reads will yield a result. The sooner it is, the less
+ * will. None will be if the take is the first one to take effect.
+ * All reads that try returning (i.e. reading) a tuple after that 1 take will be blocked, as read, is, according to the
+ * Linda spec, a blocking operation. The spec does not require any order while un-blocking the pending blocking
+ * operations in this scenario.
  *
- * Refer to {@link TestReadTake2} for a different scenario.
+ * <p>Hence, running this {@link TestReadTake2} test might very well block, and indefinitely wait for new matching tuples
+ * to un-block the rest of/all the reads.
+ *
+ * <p>Refer to {@link TestReadTake1} for a different scenario.
  */
-public class TestReadTake1 {
+public class TestReadTake2 {
 
     public static void main(String[] a) {
 
@@ -45,28 +51,12 @@ public class TestReadTake1 {
             System.out.println("(1.1 take) Result:" + result);
         }).start();
 
-        // write some matching tuples
+        // write some matching tuples - 1 in this case
         new Thread(() -> {
             TestUtils.sleep(20);
 
             Tuple t = new Tuple(4, 5);
             System.out.println("(2) write: " + t);
-            linda.write(t);
-        }).start();
-
-        new Thread(() -> {
-            TestUtils.sleep(20);
-
-            Tuple t = new Tuple(-4, Integer.class);
-            System.out.println("(3) write: " + t);
-            linda.write(t);
-        }).start();
-
-        new Thread(() -> {
-            TestUtils.sleep(20);
-
-            Tuple t = new Tuple(Integer.class, -42);
-            System.out.println("(4) write: " + t);
             linda.write(t);
         }).start();
     }

@@ -1,4 +1,4 @@
-package linda.test;
+package linda.test.full;
 
 import linda.Callback;
 import linda.Linda;

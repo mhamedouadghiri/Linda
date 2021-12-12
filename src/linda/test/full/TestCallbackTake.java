@@ -1,4 +1,4 @@
-package linda.test;
+package linda.test.full;
 
 import linda.Callback;
 import linda.Linda;
@@ -7,7 +7,7 @@ import linda.Linda.eventTiming;
 import linda.Tuple;
 import linda.util.TestUtils;
 
-/***
+/**
  * Running this {@link TestCallbackTake} test should always block, indefinitely waiting for a matching tuple to take;
  * as the "write primitive" always checks the callbacks before waking up any other "normal" read/take.
  */
