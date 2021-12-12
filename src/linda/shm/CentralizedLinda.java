@@ -153,10 +153,6 @@ public class CentralizedLinda implements Linda {
     @Override
     public void debug(String prefix) {
         lock.lock();
-        if (tuples.isEmpty() && eventCallbacks.isEmpty()) {
-            lock.unlock();
-            return;
-        }
         System.out.println();
         debug("TupleSpace", prefix, tuples);
         debug("Callbacks", prefix, eventCallbacks);
@@ -167,6 +163,7 @@ public class CentralizedLinda implements Linda {
     private void debug(String identifier, String prefix, Collection<?> collection) {
         lock.lock();
         if (collection.isEmpty()) {
+            System.out.format(" --- %s collection with prefix %s is empty. --- \n", identifier, prefix);
             lock.unlock();
             return;
         }
