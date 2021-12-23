@@ -16,7 +16,7 @@ import java.util.Collection;
  */
 public class LindaClient implements Linda {
 
-    private static LindaRMI server;
+    private static LindaRemote server;
 
     /**
      * Initializes the Linda implementation.
@@ -25,7 +25,7 @@ public class LindaClient implements Linda {
      */
     public LindaClient(String serverURI) {
         try {
-            server = (LindaRMI) Naming.lookup(serverURI);
+            server = (LindaRemote) Naming.lookup(serverURI);
         } catch (NotBoundException | MalformedURLException | RemoteException e) {
             e.printStackTrace();
         }
@@ -103,7 +103,7 @@ public class LindaClient implements Linda {
     @Override
     public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
         try {
-            server.eventRegister(mode, timing, template, callback);
+            server.eventRegister(mode, timing, template, new CallbackRemoteWrapper(callback));
         } catch (RemoteException e) {
             e.printStackTrace();
         }

@@ -1,6 +1,5 @@
 package linda.server;
 
-import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 import linda.shm.CentralizedLinda;
@@ -12,7 +11,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Collection;
 
-public class LindaServer extends UnicastRemoteObject implements LindaRMI {
+public class LindaServer extends UnicastRemoteObject implements LindaRemote {
 
     private final Linda linda;
 
@@ -71,8 +70,14 @@ public class LindaServer extends UnicastRemoteObject implements LindaRMI {
     }
 
     @Override
-    public void eventRegister(Linda.eventMode mode, Linda.eventTiming timing, Tuple template, Callback callback) throws RemoteException {
-        linda.eventRegister(mode, timing, template, callback);
+    public void eventRegister(Linda.eventMode mode, Linda.eventTiming timing, Tuple template, CallbackRemote callbackRemote) throws RemoteException {
+        linda.eventRegister(mode, timing, template, tuple -> {
+            try {
+                callbackRemote.call(tuple);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
