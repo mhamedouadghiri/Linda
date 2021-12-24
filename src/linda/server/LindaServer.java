@@ -56,7 +56,7 @@ public class LindaServer extends UnicastRemoteObject implements LindaRemote {
 
     @Override
     public Tuple tryRead(Tuple template) throws RemoteException {
-        return linda.tryTake(template);
+        return linda.tryRead(template);
     }
 
     @Override
