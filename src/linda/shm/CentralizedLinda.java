@@ -4,9 +4,9 @@ import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -16,12 +16,20 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class CentralizedLinda implements Linda {
 
-    private final List<Tuple> tuples = new ArrayList<>();
-    private final Lock lock = new ReentrantLock();
-    private final Condition condition = lock.newCondition();
-    private final List<EventCallback> eventCallbacks = new ArrayList<>();
+    private final List<Tuple> tuples;
+    private final Lock lock;
+    private final List<EventCallback> eventCallbacks;
+
+    // use of the thread-safe BlockingQueue (and a LinkedBlockingQueue as its implementation)
+    private final Map<Tuple, BlockingQueue<Condition>> reads;
+    private final Map<Tuple, BlockingQueue<Condition>> takes;
 
     public CentralizedLinda() {
+        tuples = new ArrayList<>();
+        lock = new ReentrantLock();
+        eventCallbacks = new ArrayList<>();
+        reads = new HashMap<>();
+        takes = new HashMap<>();
     }
 
     @Override
@@ -33,7 +41,7 @@ public class CentralizedLinda implements Linda {
         lock.lock();
         tuples.add(t.deepclone());
         checkCallbacks(t);
-        condition.signalAll();
+        signal(t);
         lock.unlock();
     }
 
@@ -44,7 +52,11 @@ public class CentralizedLinda implements Linda {
         }
         lock.lock();
         Tuple hit;
+        Condition condition;
         while ((hit = tryTake(template)) == null) {
+            condition = lock.newCondition();
+            takes.putIfAbsent(template, new LinkedBlockingQueue<>());
+            takes.get(template).add(condition);
             try {
                 condition.await();
             } catch (InterruptedException e) {
@@ -62,7 +74,11 @@ public class CentralizedLinda implements Linda {
         }
         lock.lock();
         Tuple hit;
+        Condition condition;
         while ((hit = tryRead(template)) == null) {
+            condition = lock.newCondition();
+            reads.putIfAbsent(template, new LinkedBlockingQueue<>());
+            reads.get(template).add(condition);
             try {
                 condition.await();
             } catch (InterruptedException e) {
@@ -185,6 +201,35 @@ public class CentralizedLinda implements Linda {
             }
         }
         eventCallbacks.removeAll(toRemove);
+        lock.unlock();
+    }
+
+    /**
+     * Signal/wake all desired waiting operations (i.e. read/take) pertaining to a particular template.
+     *
+     * @param tuple the newly written tuple acting as a template
+     */
+    private void signal(Tuple tuple) {
+        lock.lock();
+        Condition condition;
+        for (Tuple template : reads.keySet()) {
+            if (tuple.matches(template)) {
+                while ((condition = reads.get(template).poll()) != null) {
+                    condition.signal();
+                }
+            }
+        }
+        boolean signaled = false;
+        for (Tuple template : takes.keySet()) {
+            if (!signaled) {
+                if (tuple.matches(template)) {
+                    if ((condition = takes.get(template).poll()) != null) {
+                        condition.signal();
+                        signaled = true;
+                    }
+                }
+            }
+        }
         lock.unlock();
     }
 
