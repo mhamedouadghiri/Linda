@@ -33,6 +33,14 @@ public class MultiThreadedCentralizedLinda implements Linda {
         takes = new HashMap<>();
     }
 
+    public MultiThreadedCentralizedLinda(int numberThreads) {
+        tuples = new TupleSpace(numberThreads);
+        lock = new ReentrantLock();
+        eventCallbacks = new ArrayList<>();
+        reads = new HashMap<>();
+        takes = new HashMap<>();
+    }
+
     @Override
     public void write(Tuple t) {
         if (t == null) {

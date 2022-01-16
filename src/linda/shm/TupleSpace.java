@@ -11,13 +11,17 @@ import java.util.function.Consumer;
 
 public class TupleSpace implements Collection<Tuple> {
 
-    public static final int NUMBER_THREADS = Runtime.getRuntime().availableProcessors();
+    public static final int DEFAULT_NUMBER_THREADS = Runtime.getRuntime().availableProcessors();
 
     private final List<List<Tuple>> tuples;
 
     public TupleSpace() {
+        this(DEFAULT_NUMBER_THREADS);
+    }
+
+    public TupleSpace(int numberThreads) {
         tuples = new ArrayList<>();
-        for (int i = 0; i < NUMBER_THREADS; i++) {
+        for (int i = 0; i < numberThreads; i++) {
             tuples.add(new ArrayList<>());
         }
     }
@@ -54,14 +58,14 @@ public class TupleSpace implements Collection<Tuple> {
 
     @Override
     public boolean add(Tuple serializables) {
-        return tuples.get(ThreadLocalRandom.current().nextInt(NUMBER_THREADS)).add(serializables);
+        return tuples.get(ThreadLocalRandom.current().nextInt(tuples.size())).add(serializables);
     }
 
     @Override
     public boolean remove(Object o) {
         for (List<Tuple> tupleList : tuples) {
             if (tupleList.contains(((Tuple) o))) {
-                return tuples.remove(o);
+                return tupleList.remove(o);
             }
         }
         return false;
