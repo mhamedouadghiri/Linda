@@ -10,6 +10,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 /**
  * Shared memory implementation of Linda.
@@ -138,25 +139,28 @@ public class MultiThreadedCentralizedLinda implements Linda {
 
     @Override
     public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
-        lock.lock();
-        Tuple hit = null;
+        // first, we create an EventCallback and register it
+        EventCallback eventCallback = new EventCallback(mode, template, callback);
+        eventCallbacks.add(eventCallback);
+
+        // then, if the timing is IMMEDIATE, we'll search for a match and remove the callback in case it is found
         if (timing == eventTiming.IMMEDIATE) {
+            lock.lock();
+
+            Tuple hit = null;
             if (mode == eventMode.READ) {
                 hit = tryRead(template);
             } else if (mode == eventMode.TAKE) {
                 hit = tryTake(template);
             }
-        }
 
-        if (hit != null) {
-            callback.call(hit);
-        } else {
-            // either the timing is FUTURE, or it is IMMEDIATE but no match was currently found
-            // in either case we register the callback for future use
-            eventCallbacks.add(new EventCallback(mode, template, callback));
-        }
+            if (hit != null) {
+                eventCallbacks.remove(eventCallback);
+                callback.call(hit);
+            }
 
-        lock.unlock();
+            lock.unlock();
+        }
     }
 
     @Override
@@ -182,18 +186,18 @@ public class MultiThreadedCentralizedLinda implements Linda {
         lock.unlock();
     }
 
-    private void checkCallbacks(Tuple template) {
+    private void checkCallbacks(Tuple tuple) {
         lock.lock();
-        List<EventCallback> toRemove = new ArrayList<>();
-        for (EventCallback eventCallback : eventCallbacks) {
-            if (eventCallback.tryOperation(template) != null) {
-                toRemove.add(eventCallback);
-                if (eventCallback.mode == eventMode.TAKE) {
-                    break;
-                }
+        List<EventCallback> collect = eventCallbacks.stream()
+                .filter(eventCallback -> tuple.matches(eventCallback.template))
+                .collect(Collectors.toList());
+        for (EventCallback eventCallback : collect) {
+            if (eventCallback.mode == eventMode.TAKE) {
+                tryTake(tuple);
             }
+            eventCallbacks.remove(eventCallback);
+            eventCallback.callback.call(tuple);
         }
-        eventCallbacks.removeAll(toRemove);
         lock.unlock();
     }
 
@@ -226,7 +230,7 @@ public class MultiThreadedCentralizedLinda implements Linda {
         lock.unlock();
     }
 
-    private class EventCallback {
+    private static class EventCallback {
         private final eventMode mode;
         private final Tuple template;
         private final Callback callback;
@@ -235,23 +239,6 @@ public class MultiThreadedCentralizedLinda implements Linda {
             this.mode = mode;
             this.template = template;
             this.callback = callback;
-        }
-
-        public Tuple tryOperation(Tuple tupleToFind) {
-            if (!tupleToFind.matches(template)) {
-                return null;
-            }
-            Tuple hit = null;
-            if (mode == eventMode.READ) {
-                hit = tryRead(tupleToFind);
-            } else if (mode == eventMode.TAKE) {
-                hit = tryTake(tupleToFind);
-            }
-
-            if (hit != null) {
-                callback.call(hit);
-            }
-            return hit;
         }
 
         @Override
