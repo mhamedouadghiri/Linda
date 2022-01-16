@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
  */
 public class CentralizedLinda implements Linda {
 
+    protected final Lock lock;
     private final List<Tuple> tuples;
-    private final Lock lock;
     private final List<EventCallback> eventCallbacks;
 
     // use of the thread-safe BlockingQueue (and a LinkedBlockingQueue as its implementation)
@@ -193,7 +193,7 @@ public class CentralizedLinda implements Linda {
         lock.unlock();
     }
 
-    private void checkCallbacks(Tuple tuple) {
+    protected void checkCallbacks(Tuple tuple) {
         lock.lock();
         List<EventCallback> collect = eventCallbacks.stream()
                 .filter(eventCallback -> tuple.matches(eventCallback.template))
@@ -213,7 +213,7 @@ public class CentralizedLinda implements Linda {
      *
      * @param tuple the newly written tuple acting as a template
      */
-    private void signal(Tuple tuple) {
+    protected void signal(Tuple tuple) {
         lock.lock();
         Condition condition;
         for (Tuple template : reads.keySet()) {
