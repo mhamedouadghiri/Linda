@@ -3,6 +3,7 @@ package linda.applications;
 import linda.Linda;
 import linda.Tuple;
 import linda.shm.CentralizedLinda;
+import linda.shm.MultiThreadedCentralizedLinda;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +55,28 @@ public class EratosthenesSieve {
         return primes;
     }
 
+    private static List<Integer> threadedLindaSieve(int n) {
+        // 8 seems like the sweet spot in a machine with 12 logical processors
+        Linda linda = new MultiThreadedCentralizedLinda(8);
+
+        List<Integer> primes = new ArrayList<>();
+
+        IntStream.rangeClosed(2, n).mapToObj(i -> new Tuple(i)).forEach(linda::write);
+
+        for (int i = 2; i < n + 1; i++) {
+            Tuple tuple = linda.tryRead(new Tuple(i));
+            if (tuple != null) {
+                int prime = (Integer) tuple.element();
+                primes.add(prime);
+                for (int j = prime * prime; j < n + 1; j += prime) {
+                    linda.tryTake(new Tuple(j));
+                }
+            }
+        }
+
+        return primes;
+    }
+
     private static void benchmark(int n, int iterations) {
         double time;
         int size = -1;
@@ -77,6 +100,16 @@ public class EratosthenesSieve {
         }
         time = longs.stream().mapToLong(value -> value).average().orElse(Double.NaN) / 1_000;
         printSummary("Linda Sieve", size, time);
+
+        longs = new ArrayList<>();
+        for (int i = 0; i < iterations; i++) {
+            long start = System.currentTimeMillis();
+            size = threadedLindaSieve(n).size();
+            long end = System.currentTimeMillis();
+            longs.add(end - start);
+        }
+        time = longs.stream().mapToLong(value -> value).average().orElse(Double.NaN) / 1_000;
+        printSummary("Multi-threaded Linda Sieve", size, time);
     }
 
     private static void printSummary(String type, int size, double time) {
