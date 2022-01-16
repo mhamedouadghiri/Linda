@@ -1,4 +1,4 @@
-package linda.applications;
+package linda.applications.eratosthenes;
 
 import linda.Linda;
 import linda.Tuple;
