@@ -6,22 +6,32 @@ import linda.Tuple;
 import linda.TupleFormatException;
 import linda.shm.CentralizedLinda;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
-public class Shell extends AbstractShell {
+public class ShellWithFile extends AbstractShell {
 
     private final Linda linda;
     private final Callback shellCallback;
-    private final Scanner scanner;
 
-    private boolean exit;
+    private Scanner scanner;
 
-    public Shell() {
+    private int lineCounter;
+
+    public ShellWithFile(File file) {
         this.linda = new CentralizedLinda();
         this.shellCallback = new ShellCallback();
-        this.scanner = new Scanner(System.in);
-        this.exit = false;
+        this.lineCounter = 0;
+
+        try {
+            this.scanner = new Scanner(file);
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found.");
+            System.exit(1);
+        }
     }
 
     @Override
@@ -29,8 +39,7 @@ public class Shell extends AbstractShell {
         String line;
         String[] tokens;
 
-        while (!exit) {
-            System.out.print("linda> ");
+        while (scanner.hasNextLine()) {
             line = scanner.nextLine();
 
             tokens = sanitize(line.split("\\s"));
@@ -43,29 +52,16 @@ public class Shell extends AbstractShell {
     }
 
     private void interpret(String[] tokens) {
-        if (tokens[0].equals("exit")) {
-            exit = true;
-            return;
-        }
-        if (tokens[0].equals("help")) {
-            System.out.println("Help message in progress...");
-            return;
-        }
-
         Method primitive = lindaPrimitives.get(tokens[0]);
 
         if (primitive == null) {
             System.out.printf(Locale.UK,
-                    "linda: `%s`: primitive not found. Type `help` to display all available commands.\n",
+                    "linda: `%s`: primitive not found.\n",
                     tokens[0]);
-            return;
+            cleanExit(scanner, 1);
         }
 
         Object[] params = setParams(tokens);
-
-        if (params == null) {
-            return;
-        }
 
         invokePrimitive(primitive, params);
     }
@@ -90,7 +86,7 @@ public class Shell extends AbstractShell {
                     System.out.printf(Locale.UK,
                             "`%s` is not a valid tuple.\n",
                             joinedString);
-                    return null;
+                    cleanExit(scanner, 1);
                 }
                 break;
             case "debug":
@@ -107,7 +103,7 @@ public class Shell extends AbstractShell {
                             System.out.printf(Locale.UK,
                                     "`%s` is not a valid tuple.\n",
                                     joinedString);
-                            return null;
+                            cleanExit(scanner, 1);
                         }
                     }
                 }
@@ -120,24 +116,31 @@ public class Shell extends AbstractShell {
                 break;
             default:
                 System.out.printf(Locale.UK,
-                        "linda: `%s`: primitive not found. Type `help` to display all available commands.\n",
+                        "linda: `%s`: primitive not found.\n",
                         tokens[0]);
-                return null;
+                cleanExit(scanner, 1);
         }
         return params.toArray();
     }
 
     private void invokePrimitive(Method primitive, Object[] params) {
+        Object invocationResult = null;
         try {
-            Object invocationResult = primitive.invoke(linda, params);
-            if (invocationResult != null) {
-                System.out.println(invocationResult);
-            }
+            System.out.printf(Locale.UK,
+                    "\t%%%%%% exec line %d, %s(%s).\n",
+                    ++lineCounter,
+                    primitive.getName(),
+                    params.length != 0 ? Arrays.stream(params).map(Object::toString).collect(Collectors.joining(", ")) : "");
+            invocationResult = primitive.invoke(linda, params);
         } catch (Exception e) {
             System.out.printf(Locale.UK,
                     "The primitive `%s` needs the following parameters: %s.\n",
                     primitive.getName(),
                     Arrays.toString(Arrays.stream(primitive.getParameterTypes()).map(Class::getSimpleName).toArray()));
+            cleanExit(scanner, 1);
+        }
+        if (invocationResult != null) {
+            System.out.println(invocationResult);
         }
     }
 }
