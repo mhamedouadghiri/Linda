@@ -1,0 +1,9 @@
+write [ 42 "fubar" ]
+write [ ?Integer [ ?String [ ] ] ]
+
+eventRegister read immediate [ ?Integer ?Tuple ]
+eventRegister take future [ 42 ?String ]
+
+write [ 42 "foo" ]
+
+debug "from eg2"
