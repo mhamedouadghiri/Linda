@@ -9,6 +9,16 @@ import linda.shm.CentralizedLinda;
 import java.lang.reflect.Method;
 import java.util.*;
 
+/**
+ * A simple shell to interactively use with the Linda kernel.
+ *
+ * All the common Linda primitives defined in the Linda interface are available.
+ * Help is available in the shell by typing the `help` command.
+ * The `eventRegister` primitive does not take a `Callback`, one is implicitly defined and tied to the shell session itself.
+ *
+ * @see AbstractShell
+ * @see ShellWithFile
+ */
 public class Shell extends AbstractShell {
 
     private final Linda linda;
@@ -48,7 +58,34 @@ public class Shell extends AbstractShell {
             return;
         }
         if (tokens[0].equals("help")) {
-            System.out.println("Help message in progress...");
+            System.out.println("Parameters description:\n" +
+                    "\t<tuple>: A Tuple with a value represented by the specified String:\n" +
+                    "\t\t Known values: integer, boolean, string, classname (eg. ?Integer), recursive tuple.\n" +
+                    "\t\t Examples: [ 3 4 ], [ ?Integer \"foo\" true 42 ?Tuple ], [ [ false ?Object ] [ 3 [ \"bar\" ] 7 ] ]\n" +
+                    "\t<string>: A string.\n" +
+                    "\t<mode>: `read` or `take`.\n" +
+                    "\t<timing>: `immediate` or `future`.\n" +
+                    "These are all the available commands in the Linda shell:\n" +
+                    "\twrite <tuple>: add the tuple to the tuplespace.\n" +
+                    "\t\twrite [ 3 ?Tuple [ \"foo\" ?String ] false ] \n" +
+                    "\ttake <tuple>: take a matching tuple, block if none is found.\n" +
+                    "\t\ttake [ 3 true ] \n" +
+                    "\tread <tuple>: read a matching tuple, block if none is found.\n" +
+                    "\t\tread [ \"foo\" ?Integer ] \n" +
+                    "\ttryTake <tuple>: take a matching tuple, return null if none is found.\n" +
+                    "\t\ttryTake [ ?Object ?Object [ ] ] \n" +
+                    "\ttryRead <tuple>: read a matching tuple, return null if none is found.\n" +
+                    "\t\ttryRead [ [ ?Tuple ] ] \n" +
+                    "\ttakeAll <tuple>: take all matching tuples, return empty is none is found.\n" +
+                    "\t\ttakeAll [ ?Integer ?Number ] \n" +
+                    "\treadAll <tuple>: take all matching tuples, return empty is none is found.\n" +
+                    "\t\treadAll [ ?Integer false ] \n" +
+                    "\teventRegister <mode> <timing> <tuple>: register an event, with an implicit Callback in this interactive shell.\n" +
+                    "\t\teventRegister read immediate [ ?Boolean ?Integer ] \n" +
+                    "\tdebug <string>: dump all existing tuples and callbacks with the specified prefix.\n" +
+                    "\t\tdebug \"shell\" \n" +
+                    "\thelp: show this message.\n" +
+                    "\texit: terminate the shell and perform a clean exit.");
             return;
         }
 
@@ -56,7 +93,7 @@ public class Shell extends AbstractShell {
 
         if (primitive == null) {
             System.out.printf(Locale.UK,
-                    "linda: `%s`: primitive not found. Type `help` to display all available commands.\n",
+                    "linda: `%s`: command not found. Type `help` to display all available commands.\n",
                     tokens[0]);
             return;
         }
@@ -120,7 +157,7 @@ public class Shell extends AbstractShell {
                 break;
             default:
                 System.out.printf(Locale.UK,
-                        "linda: `%s`: primitive not found. Type `help` to display all available commands.\n",
+                        "linda: `%s`: command not found. Type `help` to display all available commands.\n",
                         tokens[0]);
                 return null;
         }

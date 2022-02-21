@@ -12,6 +12,17 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * This allows the user to write a predefined scenario in a file that is parsed and executed against a Linda kernel.
+ *
+ * This makes it easier to save a particular scenario for future use, in contrast with the @{@link Shell} way.
+ *
+ * All the common Linda primitives defined in the Linda interface are available.
+ * The `eventRegister` primitive does not take a `Callback`, one is implicitly defined and tied to the execution itself.
+ *
+ * @see AbstractShell
+ * @see Shell
+ */
 public class ShellWithFile extends AbstractShell {
 
     private final Linda linda;

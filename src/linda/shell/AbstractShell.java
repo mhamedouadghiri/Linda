@@ -12,6 +12,13 @@ import java.util.Scanner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * An abstract class defining some useful methods for shell implementation, a static @{@link ShellCallback} callback,
+ * and the {@link #run()} method, the entrypoint point of all shell implementations.
+ *
+ * @see Shell
+ * @see ShellWithFile
+ */
 public abstract class AbstractShell {
 
     protected static final Map<String, Method> lindaPrimitives = getLindaPrimitives();
@@ -39,8 +46,14 @@ public abstract class AbstractShell {
         }
     }
 
+    /**
+     * Entrypoint to all shell implementations.
+     */
     protected abstract void run();
 
+    /**
+     * A custom callback implicitly used with `eventRegister` in all shell implementations.
+     */
     protected static class ShellCallback implements Callback {
         public void call(Tuple t) {
             System.out.printf(Locale.UK, "Callback triggered, got `%s`.\n", t);
