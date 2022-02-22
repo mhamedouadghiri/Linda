@@ -1,17 +1,21 @@
 package linda.shell;
 
-import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 import linda.TupleFormatException;
-import linda.shm.CentralizedLinda;
+import linda.server.CallbackRemote;
+import linda.server.LindaRemote;
 
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.*;
 
 /**
  * A simple shell to interactively use with the Linda kernel.
- *
+ * <p>
  * All the common Linda primitives defined in the Linda interface are available.
  * Help is available in the shell by typing the `help` command.
  * The `eventRegister` primitive does not take a `Callback`, one is implicitly defined and tied to the shell session itself.
@@ -21,15 +25,26 @@ import java.util.*;
  */
 public class Shell extends AbstractShell {
 
-    private final Linda linda;
-    private final Callback shellCallback;
     private final Scanner scanner;
-
+    private CallbackRemote shellCallback;
+    private LindaRemote linda;
     private boolean exit;
 
-    public Shell() {
-        this.linda = new CentralizedLinda();
-        this.shellCallback = new ShellCallback();
+    public Shell(String serverURI) {
+        try {
+            this.linda = (LindaRemote) Naming.lookup(serverURI);
+        } catch (NotBoundException | MalformedURLException | RemoteException e) {
+            System.out.println("An error occurred when establishing connecting to the linda server.");
+            System.out.println(e.getLocalizedMessage());
+            System.exit(1);
+        }
+        try {
+            this.shellCallback = new ShellCallback();
+        } catch (RemoteException e) {
+            System.out.println("An unexpected error has occurred.");
+            System.out.println(e.getLocalizedMessage());
+            System.exit(1);
+        }
         this.scanner = new Scanner(System.in);
         this.exit = false;
     }
@@ -134,6 +149,12 @@ public class Shell extends AbstractShell {
                 params.add(args.length != 0 ? String.join(" ", args) : "(shell)");
                 break;
             case "eventRegister":
+                if (tokens.length < 4) {
+                    System.out.printf(Locale.UK,
+                            "The `eventRegister` primitive expects 3 parameters. Type `help` for more info.\n"
+                    );
+                    return null;
+                }
                 Tuple tuple = null;
                 if (tokens[1].equalsIgnoreCase("read") || tokens[1].equalsIgnoreCase("take")) {
                     if (tokens[2].equalsIgnoreCase("immediate") || tokens[2].equalsIgnoreCase("future")) {
@@ -153,6 +174,11 @@ public class Shell extends AbstractShell {
                     params.add(Linda.eventTiming.valueOf(tokens[2].toUpperCase()));
                     params.add(tuple);
                     params.add(shellCallback);
+                } else {
+                    System.out.printf(Locale.UK,
+                            "Wrong use of the `eventRegister` primitive. Type `help` for more info.\n"
+                    );
+                    return null;
                 }
                 break;
             default:
@@ -171,10 +197,7 @@ public class Shell extends AbstractShell {
                 System.out.println(invocationResult);
             }
         } catch (Exception e) {
-            System.out.printf(Locale.UK,
-                    "The primitive `%s` needs the following parameters: %s.\n",
-                    primitive.getName(),
-                    Arrays.toString(Arrays.stream(primitive.getParameterTypes()).map(Class::getSimpleName).toArray()));
+            System.out.println("An error has occurred: " + e.getLocalizedMessage());
         }
     }
 }

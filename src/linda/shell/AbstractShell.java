@@ -1,10 +1,12 @@
 package linda.shell;
 
-import linda.Callback;
-import linda.Linda;
 import linda.Tuple;
+import linda.server.CallbackRemote;
+import linda.server.LindaRemote;
 
 import java.lang.reflect.Method;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
@@ -24,7 +26,7 @@ public abstract class AbstractShell {
     protected static final Map<String, Method> lindaPrimitives = getLindaPrimitives();
 
     private static Map<String, Method> getLindaPrimitives() {
-        return Arrays.stream(Linda.class.getMethods())
+        return Arrays.stream(LindaRemote.class.getMethods())
                 .collect(Collectors.toMap(Method::getName, Function.identity()));
     }
 
@@ -54,8 +56,12 @@ public abstract class AbstractShell {
     /**
      * A custom callback implicitly used with `eventRegister` in all shell implementations.
      */
-    protected static class ShellCallback implements Callback {
-        public void call(Tuple t) {
+    protected static class ShellCallback extends UnicastRemoteObject implements CallbackRemote {
+        protected ShellCallback() throws RemoteException {
+        }
+
+        @Override
+        public void call(Tuple t) throws RemoteException {
             System.out.printf(Locale.UK, "Callback triggered, got `%s`.\n", t);
         }
     }

@@ -1,22 +1,26 @@
 package linda.shell;
 
-import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 import linda.TupleFormatException;
-import linda.shm.CentralizedLinda;
+import linda.server.CallbackRemote;
+import linda.server.LindaRemote;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * This allows the user to write a predefined scenario in a file that is parsed and executed against a Linda kernel.
- *
+ * <p>
  * This makes it easier to save a particular scenario for future use, in contrast with the @{@link Shell} way.
- *
+ * <p>
  * All the common Linda primitives defined in the Linda interface are available.
  * The `eventRegister` primitive does not take a `Callback`, one is implicitly defined and tied to the execution itself.
  *
@@ -25,24 +29,34 @@ import java.util.stream.Collectors;
  */
 public class ShellWithFile extends AbstractShell {
 
-    private final Linda linda;
-    private final Callback shellCallback;
-
+    private CallbackRemote shellCallback;
+    private LindaRemote linda;
     private Scanner scanner;
 
     private int lineCounter;
 
-    public ShellWithFile(File file) {
-        this.linda = new CentralizedLinda();
-        this.shellCallback = new ShellCallback();
-        this.lineCounter = 0;
-
+    public ShellWithFile(String serverURI, File file) {
+        try {
+            this.linda = (LindaRemote) Naming.lookup(serverURI);
+        } catch (NotBoundException | MalformedURLException | RemoteException e) {
+            System.out.println("An error occurred when establishing connecting to the linda server.");
+            System.out.println(e.getLocalizedMessage());
+            System.exit(1);
+        }
         try {
             this.scanner = new Scanner(file);
         } catch (FileNotFoundException e) {
             System.out.println("File not found.");
             System.exit(1);
         }
+        try {
+            this.shellCallback = new ShellCallback();
+        } catch (RemoteException e) {
+            System.out.println("An unexpected error has occurred.");
+            System.out.println(e.getLocalizedMessage());
+            System.exit(1);
+        }
+        this.lineCounter = 0;
     }
 
     @Override
@@ -104,6 +118,12 @@ public class ShellWithFile extends AbstractShell {
                 params.add(args.length != 0 ? String.join(" ", args) : "(shell)");
                 break;
             case "eventRegister":
+                if (tokens.length < 4) {
+                    System.out.printf(Locale.UK,
+                            "The `eventRegister` primitive expects 3 parameters. Type `help` for more info.\n"
+                    );
+                    cleanExit(scanner, 1);
+                }
                 Tuple tuple = null;
                 if (tokens[1].equalsIgnoreCase("read") || tokens[1].equalsIgnoreCase("take")) {
                     if (tokens[2].equalsIgnoreCase("immediate") || tokens[2].equalsIgnoreCase("future")) {
@@ -123,6 +143,11 @@ public class ShellWithFile extends AbstractShell {
                     params.add(Linda.eventTiming.valueOf(tokens[2].toUpperCase()));
                     params.add(tuple);
                     params.add(shellCallback);
+                } else {
+                    System.out.printf(Locale.UK,
+                            "Wrong use of the `eventRegister` primitive. Type `help` for more info.\n"
+                    );
+                    cleanExit(scanner, 1);
                 }
                 break;
             default:
@@ -144,10 +169,7 @@ public class ShellWithFile extends AbstractShell {
                     params.length != 0 ? Arrays.stream(params).map(Object::toString).collect(Collectors.joining(", ")) : "");
             invocationResult = primitive.invoke(linda, params);
         } catch (Exception e) {
-            System.out.printf(Locale.UK,
-                    "The primitive `%s` needs the following parameters: %s.\n",
-                    primitive.getName(),
-                    Arrays.toString(Arrays.stream(primitive.getParameterTypes()).map(Class::getSimpleName).toArray()));
+            System.out.println("An error has occurred: " + e.getLocalizedMessage());
             cleanExit(scanner, 1);
         }
         if (invocationResult != null) {
